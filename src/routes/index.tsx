@@ -3,7 +3,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { useWorkspace } from "@/lib/workspace";
 import { PlaceCard } from "@/components/PlaceCard";
 import { Button } from "@/components/ui/button";
-import { Check, Loader2, MapPin, Radar, Upload, Sparkles, X, Link2 } from "lucide-react";
+import { Check, Loader2, Radar, Upload, Sparkles, X, Link2 } from "lucide-react";
 import { CATEGORY_LABEL, POOL, SAMPLES, type Category, type Sample } from "@/lib/places";
 
 const MapView = lazy(() => import("@/components/MapView"));
@@ -122,12 +122,12 @@ function Index() {
           </Suspense>
         </ClientOnly>
         <div className="glass pointer-events-none absolute left-5 top-5 z-[500] rounded-lg px-4 py-2 font-mono text-[11px] text-muted-foreground">
-          <span className="text-primary">●</span> LIVE · {shown.length} PINS · LOS ANGELES
+          <span className="text-primary">●</span> LIVE · {shown.length} PINS · {collections.find(c => c.id === selectedCollection)?.name}
         </div>
 
         {run && (
           <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-background/60 backdrop-blur-sm">
-            <div className="glass relative w-[460px] overflow-hidden rounded-2xl p-6">
+            <div className="glass relative w-[460px] max-w-[calc(100%-24px)] overflow-hidden rounded-lg p-6">
               <div className="animate-scan pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-transparent via-primary/10 to-transparent" />
               <div className="mb-1 flex items-center justify-between">
                 <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">AI Detective Pipeline</p>

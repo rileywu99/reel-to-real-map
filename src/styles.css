@@ -177,6 +177,7 @@
 .space-footer { display: flex; justify-content: space-between; gap: 20px; border-top: 1px solid var(--border); padding: 22px 0; font-family: var(--font-mono); font-size: 9px; color: var(--muted-foreground); }
 .place-card { border: 1px solid var(--border); border-radius: 8px; background: var(--card); padding: 14px; }
 .place-heading { width: 100%; height: auto; white-space: normal; padding: 0; justify-content: flex-start; align-items: flex-start; text-align: left; }
+.place-heading:hover { background: var(--secondary); color: var(--foreground); }
 .place-heading > span:first-of-type { flex: 1; min-width: 0; }
 .place-heading strong { display: block; font-size: 14px; overflow-wrap: anywhere; }
 .place-heading small { display: block; color: var(--muted-foreground); font-size: 10px; margin-top: 4px; overflow-wrap: anywhere; }
@@ -208,13 +209,15 @@
   .page-heading h1 { font-size: 25px; }
   .profile-section { flex-wrap: wrap; gap: 16px; }
   .profile-avatar { width: 64px; height: 64px; }
+  .profile-copy { flex-basis: calc(100% - 80px); min-width: 0; }
   .profile-copy h2 { font-size: 23px; }
-  .profile-section > button { margin-left: 80px; }
+  .profile-section > button { margin-left: 80px; flex-basis: auto; }
   .stats-grid { gap: 8px; }
   .stat-card { padding: 14px 10px; }
   .stat-card > svg { display: none; }
   .stat-card strong { font-size: 26px; }
   .stat-card > span { font-size: 10px; }
+  .stat-card { grid-template-columns: 1fr; }
   .collection-grid { grid-template-columns: 1fr; }
   .collection-select { height: auto; min-height: 90px; padding: 18px; }
   .collection-select svg { margin: 0; }
