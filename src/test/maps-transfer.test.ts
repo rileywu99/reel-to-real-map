@@ -20,8 +20,10 @@ describe("Maps transfer rules", () => {
     expect(parseMapsFile(exportMapsCsv(places), "export.csv").places[0]).toMatchObject({ name: "Cafe, One", lat: 34.1, lng: -118.2 });
   });
   it("uses Google Maps standard search URL and Apple preference", () => {
-    expect(googleMapsUrl(GOOGLE_DEMO_PLACES[0])).toContain("https://www.google.com/maps/search/?api=1&query=");
-    expect(externalMapsUrl(GOOGLE_DEMO_PLACES[0], "apple")).toContain("https://maps.apple.com/?ll=34.078,-118.4741");
+    const place = GOOGLE_DEMO_PLACES[0];
+    if (!place) throw new Error("Missing demo place");
+    expect(googleMapsUrl(place)).toContain("https://www.google.com/maps/search/?api=1&query=");
+    expect(externalMapsUrl(place, "apple")).toContain("https://maps.apple.com/?ll=34.078,-118.4741");
   });
   it("validates Maps links before the three-place demo import", () => {
     expect(GOOGLE_DEMO_PLACES).toHaveLength(3);
@@ -30,7 +32,9 @@ describe("Maps transfer rules", () => {
   });
   it("computes captured count, visit completion and unique cities", () => {
     const { places } = parseMapsFile(csv, "file.csv");
-    expect(statistics([...places, { ...places[0], id: "2", visited: true }])).toEqual({ captured: 2, completed: 50, cities: 1 });
+    const place = places[0];
+    if (!place) throw new Error("Missing imported place");
+    expect(statistics([...places, { ...place, id: "2", visited: true }])).toEqual({ captured: 2, completed: 50, cities: 1 });
   });
   it("defines the nearby reminder distance as 500 metres", () => expect(REMINDER_DISTANCE_METERS).toBe(500));
   it("defines weekly suggestions for Friday", () => expect(WEEKEND_REMINDER_DAY).toBe(5));
