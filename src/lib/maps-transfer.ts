@@ -9,13 +9,13 @@ export function externalMapsUrl(p: Place, provider: "google" | "apple") {
   return provider === "google" ? googleMapsUrl(p) : `https://maps.apple.com/?ll=${p.lat},${p.lng}&q=${encodeURIComponent(p.name)}`;
 }
 export function isGoogleMapsListUrl(text: string) {
-  try { const u = new URL(text); return u.protocol === "https:" && (u.hostname === "maps.app.goo.gl" || u.hostname === "goo.gl" && u.pathname.startsWith("/maps") || /(^|\.)google\.[a-z.]+$/.test(u.hostname) && (u.pathname.startsWith("/maps") || u.hostname.startsWith("maps."))); } catch { return false; }
+  try { const u = new URL(text); return u.protocol === "https:" && (u.hostname === "maps.app.goo.gl" || u.hostname === "goo.gl" && u.pathname.startsWith("/maps") || /^(www\.|maps\.)?google\.(com|[a-z]{2}|com\.[a-z]{2}|co\.[a-z]{2})$/.test(u.hostname) && (u.pathname.startsWith("/maps") || u.hostname.startsWith("maps."))); } catch { return false; }
 }
 const text = (v: unknown): string => typeof v === "string" || typeof v === "number" ? String(v) : "";
 const object = (v: unknown): Record<string, unknown> => v && typeof v === "object" && !Array.isArray(v) ? v as Record<string, unknown> : {};
 function normalize(raw: unknown, index: number): SavedPlace | null {
-  const row = object(raw), props = object(row.properties), geometry = object(row.geometry);
-  const loc = object(props.location ?? row.location), coords = geometry.coordinates;
+  const row = object(raw), props = object(row['properties']), geometry = object(row['geometry']);
+  const loc = object(props['location'] ?? row['location']), coords = geometry['coordinates'];
   const lookup = (keys: string[]) => { for (const k of keys) { const value = row[k] ?? props[k] ?? loc[k]; if (value !== undefined && value !== null && value !== "") return value; } return undefined; };
   let latValue = lookup(["Latitude", "latitude", "lat", "緯度"]), lngValue = lookup(["Longitude", "longitude", "lng", "lon", "經度"]);
   if (Array.isArray(coords)) { lngValue = coords[0]; latValue = coords[1]; }
@@ -35,7 +35,7 @@ export function parseMapsFile(content: string, filename: string) {
   if (/\.json$/i.test(filename)) {
     const parsed: unknown = JSON.parse(content.replace(/^\uFEFF/, ""));
     const root = object(parsed);
-    rows = Array.isArray(parsed) ? parsed : Array.isArray(root.features) ? root.features : Array.isArray(root.places) ? root.places : Array.isArray(root.saved_places) ? root.saved_places : [];
+    rows = Array.isArray(parsed) ? parsed : Array.isArray(root['features']) ? root['features'] : Array.isArray(root['places']) ? root['places'] : Array.isArray(root['saved_places']) ? root['saved_places'] : [];
   } else if (/\.csv$/i.test(filename)) {
     const result = Papa.parse<Record<string, string>>(content.replace(/^\uFEFF/, ""), { header: true, skipEmptyLines: "greedy", transformHeader: h => h.trim() });
     if (result.errors.some(e => e.code === "MissingQuotes")) throw new Error("CSV 引號格式不完整");
