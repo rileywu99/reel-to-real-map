@@ -33,3 +33,4 @@ use the editor.
 - Read workspace identity with the generated session RPC in the My Space loader; virtual sign-out never clears the Lovable platform session.
 - Parse imported CSV with Papa Parse and render only validated coordinates; never infer coordinates from missing file data.
 - Keep map libraries dynamically imported behind ClientOnly and construct popup text with DOM textContent to avoid executing imported content.
+- Keep the mobile map-first presentation in the existing map route with capture and place sheets; retain the desktop workbench and shared workspace state to avoid divergent functionality.

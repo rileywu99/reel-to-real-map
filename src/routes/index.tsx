@@ -3,7 +3,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { useWorkspace } from "@/lib/workspace";
 import { PlaceCard } from "@/components/PlaceCard";
 import { Button } from "@/components/ui/button";
-import { Check, Loader2, Radar, Upload, Sparkles, X, Link2 } from "lucide-react";
+import { Check, Loader2, Radar, Upload, Sparkles, X, Link2, Compass, Search, Plus, List } from "lucide-react";
 import { CATEGORY_LABEL, POOL, SAMPLES, type Category, type Sample } from "@/lib/places";
 
 const MapView = lazy(() => import("@/components/MapView"));
@@ -33,6 +33,8 @@ function Index() {
   const [sample, setSample] = useState<Sample | null>(null);
   const [run, setRun] = useState<{ sample: Sample; done: number } | null>(null);
   const [drag, setDrag] = useState(false);
+  const [captureOpen, setCaptureOpen] = useState(false);
+  const [feedOpen, setFeedOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const cancel = () => { timers.current.forEach(clearTimeout); timers.current = []; setRun(null); };
@@ -53,7 +55,7 @@ function Index() {
       const added = addPlaces([{ ...chosen.result, id }], selectedCollection);
       setFilter("all");
       setActiveId(added[0]?.id ?? null);
-      setRun(null); setInput(""); setSample(null);
+      setRun(null); setInput(""); setSample(null); setCaptureOpen(false); setFeedOpen(false);
     }, 3700));
   };
 
@@ -61,10 +63,12 @@ function Index() {
   const onFile = (f?: File) => { if (f) { setSample(null); setInput(f.name); } };
   const select = useCallback((id: string) => setActiveId(id), []);
   const shown = places.filter((p) => p.collectionId === selectedCollection && (filter === "all" || p.category === filter));
+  const activePlace = shown.find(p => p.id === activeId);
 
   return (
     <div className="map-workbench flex w-full overflow-hidden bg-background">
-      <aside className="capture-sidebar grid-bg flex flex-col gap-5 overflow-y-auto border-r border-border p-6">
+      <aside className={`capture-sidebar grid-bg flex flex-col gap-5 overflow-y-auto border-r border-border p-6 ${captureOpen ? "mobile-open" : ""}`}>
+        <div className="mobile-sheet-heading"><span>捕捉新靈感</span><Button variant="ghost" size="icon" aria-label="關閉靈感捕捉" onClick={() => setCaptureOpen(false)}><X /></Button></div>
         <header className="flex items-center gap-3">
           <div className="glow-primary flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground"><Radar className="h-5 w-5" /></div>
           <div>
@@ -99,7 +103,7 @@ function Index() {
           </div>
         </section>
 
-        <section className="flex flex-1 flex-col gap-3">
+        <section className="desktop-saved-feed flex flex-1 flex-col gap-3">
           <div className="flex items-center justify-between">
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Saved Places · {places.length}</p>
           </div>
@@ -121,12 +125,23 @@ function Index() {
             <MapView places={shown} activeId={activeId} onSelect={select} />
           </Suspense>
         </ClientOnly>
-        <div className="glass pointer-events-none absolute left-5 top-5 z-[500] rounded-lg px-4 py-2 font-mono text-[11px] text-muted-foreground">
+        <header className="mobile-map-header">
+          <div className="mobile-map-brand"><Radar /><h1>CLIP2MAP <span>//</span></h1></div>
+          <div className="mobile-map-toolbar">
+            <label className="mobile-collection glass"><Compass /><select aria-label="地圖清單" value={selectedCollection} onChange={e => { setSelectedCollection(e.target.value); setActiveId(null); }}>{collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+            <div className="mobile-map-tools"><span className="mobile-pin-count glass"><strong>{shown.length}</strong> 個座標</span><Button variant="outline" size="icon" className="glass" aria-label="捕捉新靈感" onClick={() => { setCaptureOpen(true); setFeedOpen(false); }}><Search /></Button></div>
+          </div>
+        </header>
+        <div className="desktop-map-status glass pointer-events-none absolute left-5 top-5 z-[500] rounded-lg px-4 py-2 font-mono text-[11px] text-muted-foreground">
           <span className="text-primary">●</span> LIVE · {shown.length} PINS · {collections.find(c => c.id === selectedCollection)?.name}
         </div>
+        <div className="mobile-map-commands"><Button size="icon" variant="outline" className="glass" aria-label="顯示珍藏地點" aria-expanded={feedOpen} onClick={() => { setFeedOpen(!feedOpen); setCaptureOpen(false); }}><List /></Button><Button size="icon" className="glow-primary" aria-label="新增靈感" onClick={() => { setCaptureOpen(true); setFeedOpen(false); }}><Plus /></Button></div>
+        {activePlace && !feedOpen && <section className="mobile-place-detail glass" aria-label="已選地點"><div className="mobile-detail-heading"><span>{activePlace.confidence}% AI 匹配 · {activePlace.source}</span><Button variant="ghost" size="icon" aria-label="關閉地點詳情" onClick={() => setActiveId(null)}><X /></Button></div><PlaceCard place={activePlace} active onSelect={select} /></section>}
+        {!activePlace && !feedOpen && <div className="mobile-place-preview glass">{shown.length ? <Button variant="ghost" onClick={() => select(shown[0]?.id ?? "")}><span className="text-accent"><Compass /></span><span><strong>{shown[0]?.name}</strong><small>{shown.length} 個珍藏地點</small></span><List /></Button> : <span>此清單尚無地點</span>}</div>}
+        {feedOpen && <section className="mobile-feed glass" aria-label="珍藏地點清單"><div className="mobile-sheet-heading"><span>珍藏地點 · {shown.length}</span><Button size="icon" variant="ghost" aria-label="關閉地點清單" onClick={() => setFeedOpen(false)}><X /></Button></div><div className="mobile-feed-filters">{(["all", "food", "cafe", "art", "view"] as const).map(c => <Button key={c} size="sm" variant={filter === c ? "secondary" : "ghost"} onClick={() => setFilter(c)}>{c === "all" ? "全部" : CATEGORY_LABEL[c]}</Button>)}</div>{shown.map(p => <PlaceCard key={p.id} place={p} onSelect={id => { select(id); setFeedOpen(false); }} />)}{!shown.length && <p className="text-muted-foreground text-sm py-6 text-center">此清單尚無地點</p>}</section>}
 
         {run && (
-          <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-background/60 backdrop-blur-sm">
+          <div className="reasoning-overlay absolute inset-0 z-[1000] flex items-center justify-center bg-background/60 backdrop-blur-sm">
             <div className="glass relative w-[460px] max-w-[calc(100%-24px)] overflow-hidden rounded-lg p-6">
               <div className="animate-scan pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-transparent via-primary/10 to-transparent" />
               <div className="mb-1 flex items-center justify-between">
