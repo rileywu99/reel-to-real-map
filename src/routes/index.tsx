@@ -34,7 +34,7 @@ function Index() {
   const analyze = (s?: Sample) => {
     const chosen: Sample = s ?? sample ?? {
       label: "自訂", input,
-      result: POOL[Math.floor(Math.random() * POOL.length)],
+      result: POOL[Math.floor(Math.random() * POOL.length)]!,
       steps: ["掃描 24 個關鍵影格，偵測招牌局部字樣與建築立面特徵", "分析口白與 Hashtags，提取街區與交通線索", "比對半徑 500m 內候選地點並排除不符特徵", "鎖定最佳候選座標並計算信心度"],
     };
     if (!chosen.input) return;
