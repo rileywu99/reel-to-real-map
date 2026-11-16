@@ -28,3 +28,8 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+- Keep virtual workspace data in a root React provider across content routes; this stage intentionally resets data on refresh and makes no persistence claims.
+- Read workspace identity with the generated session RPC in the My Space loader; virtual sign-out never clears the Lovable platform session.
+- Parse imported CSV with Papa Parse and render only validated coordinates; never infer coordinates from missing file data.
+- Keep map libraries dynamically imported behind ClientOnly and construct popup text with DOM textContent to avoid executing imported content.

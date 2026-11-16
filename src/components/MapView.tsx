@@ -19,14 +19,27 @@ export default function MapView({ places, activeId, onSelect }: { places: Place[
 
   useEffect(() => {
     if (!layer.current || !map.current) return;
-    layer.current.clearLayers();
+    const markerLayer = layer.current;
+    markerLayer.clearLayers();
     places.forEach((p) => {
       const icon = L.divIcon({ className: "", html: `<div class="pin ${p.id === activeId ? "active" : ""}"></div>`, iconSize: [18, 18], iconAnchor: [9, 9] });
-      const m = L.marker([p.lat, p.lng], { icon }).addTo(layer.current!);
-      m.bindPopup(`<div style="min-width:200px"><div style="font-size:10px;letter-spacing:.15em;color:var(--primary);font-family:var(--font-mono)">${CATEGORY_LABEL[p.category]} · ${p.source} · ${p.confidence}%</div><div style="font-weight:600;font-size:15px;margin:4px 0">${p.name}</div><div style="font-size:12px;color:var(--muted-foreground)">${p.address}</div><div style="font-size:12px;margin-top:6px">${p.note}</div></div>`);
+      const m = L.marker([p.lat, p.lng], { icon }).addTo(markerLayer);
+      const popup = document.createElement("div");
+      popup.className = "map-popup";
+      const meta = document.createElement("small");
+      meta.textContent = `${CATEGORY_LABEL[p.category]} · ${p.source} · ${p.confidence}%`;
+      const title = document.createElement("strong");
+      title.textContent = p.name;
+      const address = document.createElement("p");
+      address.textContent = p.address;
+      const note = document.createElement("p");
+      note.textContent = p.note;
+      popup.append(meta, title, address, note);
+      m.bindPopup(popup);
       m.on("click", () => onSelect(p.id));
       if (p.id === activeId) m.openPopup();
     });
+    if (!activeId && places.length) map.current.fitBounds(L.latLngBounds(places.map(p => [p.lat, p.lng])), { padding: [50, 50], maxZoom: 13 });
   }, [places, activeId, onSelect]);
 
   useEffect(() => {
