@@ -1,0 +1,4 @@
+- [x] Add shared virtual workspace, collections and place editing.
+- [x] Add My Space, settings and Lovable identity read.
+- [x] Add Maps link demo import, real file import and CSV export.
+- [x] Verify collection and import/export flows and responsive views.

@@ -10,6 +10,9 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
+import { WorkspaceProvider } from "@/lib/workspace";
+import { WorkspaceShell } from "@/components/WorkspaceShell";
+
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
@@ -126,7 +129,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <WorkspaceProvider><WorkspaceShell><Outlet /></WorkspaceShell></WorkspaceProvider>
     </QueryClientProvider>
   );
 }

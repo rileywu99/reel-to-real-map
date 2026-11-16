@@ -1,7 +1,10 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
-import { lazy, Suspense, useCallback, useRef, useState } from "react";
-import { Check, Loader2, MapPin, Radar, Upload, Sparkles, X, Link2 } from "lucide-react";
-import { CATEGORY_LABEL, POOL, SAMPLES, SEED, type Category, type Place, type Sample } from "@/lib/places";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useWorkspace } from "@/lib/workspace";
+import { PlaceCard } from "@/components/PlaceCard";
+import { Button } from "@/components/ui/button";
+import { Check, Loader2, Radar, Upload, Sparkles, X, Link2 } from "lucide-react";
+import { CATEGORY_LABEL, POOL, SAMPLES, type Category, type Sample } from "@/lib/places";
 
 const MapView = lazy(() => import("@/components/MapView"));
 
@@ -22,7 +25,8 @@ export const Route = createFileRoute("/")({
 const STEP_TITLES = ["視覺微線索 OCR", "語音與文案錨點", "空間拓撲交叉比對", "座標鎖定與同步"];
 
 function Index() {
-  const [places, setPlaces] = useState<Place[]>(SEED);
+  const { places, collections, selectedCollection, setSelectedCollection, addPlaces } = useWorkspace();
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [filter, setFilter] = useState<Category | "all">("all");
   const [input, setInput] = useState("");
@@ -31,32 +35,36 @@ function Index() {
   const [drag, setDrag] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const cancel = () => { timers.current.forEach(clearTimeout); timers.current = []; setRun(null); };
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+
   const analyze = (s?: Sample) => {
+    if (run) return;
     const chosen: Sample = s ?? sample ?? {
       label: "自訂", input,
-      result: POOL[Math.floor(Math.random() * POOL.length)]!,
+      result: POOL[Math.floor(Math.random() * POOL.length)] ?? POOL[0] ?? SAMPLES[0]?.result ?? { name: "Unknown", lat: 0, lng: 0, category: "view", address: "", source: "示範", confidence: 0, note: "" },
       steps: ["掃描 24 個關鍵影格，偵測招牌局部字樣與建築立面特徵", "分析口白與 Hashtags，提取街區與交通線索", "比對半徑 500m 內候選地點並排除不符特徵", "鎖定最佳候選座標並計算信心度"],
     };
     if (!chosen.input) return;
     setRun({ sample: chosen, done: 0 });
-    [1, 2, 3, 4].forEach((n) => setTimeout(() => setRun((r) => (r ? { ...r, done: n } : r)), n * 750));
-    setTimeout(() => {
+    [1, 2, 3, 4].forEach((n) => timers.current.push(setTimeout(() => setRun((r) => (r ? { ...r, done: n } : r)), n * 750)));
+    timers.current.push(setTimeout(() => {
       const id = `p${Date.now()}`;
-      setPlaces((p) => [{ ...chosen.result, id }, ...p]);
+      const added = addPlaces([{ ...chosen.result, id }], selectedCollection);
       setFilter("all");
-      setActiveId(id);
+      setActiveId(added[0]?.id ?? null);
       setRun(null); setInput(""); setSample(null);
-    }, 3700);
+    }, 3700));
   };
 
   const pickSample = (s: Sample) => { setSample(s); setInput(s.input); analyze(s); };
   const onFile = (f?: File) => { if (f) { setSample(null); setInput(f.name); } };
   const select = useCallback((id: string) => setActiveId(id), []);
-  const shown = places.filter((p) => filter === "all" || p.category === filter);
+  const shown = places.filter((p) => p.collectionId === selectedCollection && (filter === "all" || p.category === filter));
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background">
-      <aside className="grid-bg flex h-full w-[35%] min-w-[360px] flex-col gap-5 overflow-y-auto border-r border-border p-6">
+    <div className="map-workbench flex w-full overflow-hidden bg-background">
+      <aside className="capture-sidebar grid-bg flex flex-col gap-5 overflow-y-auto border-r border-border p-6">
         <header className="flex items-center gap-3">
           <div className="glow-primary flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground"><Radar className="h-5 w-5" /></div>
           <div>
@@ -65,7 +73,7 @@ function Index() {
           </div>
         </header>
 
-        <section className="glass rounded-xl p-4">
+        <section className="capture-section">
           <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-primary">Quick Capture</p>
           <div
             onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
@@ -75,17 +83,18 @@ function Index() {
           >
             <Link2 className="h-4 w-4 shrink-0 text-muted-foreground" />
             <input value={input} onChange={(e) => { setInput(e.target.value); setSample(null); }} placeholder="貼上 IG Reels / TikTok 連結，或拖曳截圖" className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
-            <button onClick={() => fileRef.current?.click()} className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground" aria-label="上傳截圖"><Upload className="h-4 w-4" /></button>
+            <Button variant="ghost" onClick={() => fileRef.current?.click()} className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground" aria-label="上傳截圖"><Upload className="h-4 w-4" /></Button>
             <input ref={fileRef} type="file" accept="image/*,video/*" hidden onChange={(e) => onFile(e.target.files?.[0])} />
           </div>
-          <button disabled={!input || !!run} onClick={() => analyze()} className="glow-primary mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:opacity-40 disabled:shadow-none">
+          <Button variant="ghost" disabled={!input || !!run} onClick={() => analyze()} className="glow-primary mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:opacity-40 disabled:shadow-none">
             <Sparkles className="h-4 w-4" /> 解析並瞬移至地圖
-          </button>
+          </Button>
+          <label className="mt-3 block text-xs text-muted-foreground">儲存至清單<select aria-label="儲存至清單" value={selectedCollection} onChange={e => setSelectedCollection(e.target.value)} className="mt-2 w-full">{collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
           <div className="mt-3 flex flex-col gap-2">
             {SAMPLES.map((s) => (
-              <button key={s.label} disabled={!!run} onClick={() => pickSample(s)} className="rounded-md border border-dashed border-input px-3 py-2 text-left font-mono text-xs text-muted-foreground transition hover:border-accent hover:text-accent disabled:opacity-40">
+              <Button variant="ghost" key={s.label} disabled={!!run} onClick={() => pickSample(s)} className="rounded-md border border-dashed border-input px-3 py-2 text-left font-mono text-xs text-muted-foreground transition hover:border-accent hover:text-accent disabled:opacity-40">
                 [{s.label}]
-              </button>
+              </Button>
             ))}
           </div>
         </section>
@@ -96,47 +105,33 @@ function Index() {
           </div>
           <div className="flex flex-wrap gap-1.5">
             {(["all", "food", "cafe", "art", "view"] as const).map((c) => (
-              <button key={c} onClick={() => setFilter(c)} className={`rounded-full border px-3 py-1 text-xs transition ${filter === c ? "border-primary bg-primary/15 text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}>
+              <Button variant="ghost" key={c} onClick={() => setFilter(c)} className={`rounded-full border px-3 py-1 text-xs transition ${filter === c ? "border-primary bg-primary/15 text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}>
                 {c === "all" ? "全部" : CATEGORY_LABEL[c]}
-              </button>
+              </Button>
             ))}
           </div>
-          {shown.map((p) => (
-            <button key={p.id} onClick={() => setActiveId(p.id)} className={`glass animate-in fade-in slide-in-from-top-2 rounded-xl p-4 text-left transition hover:border-primary/50 ${activeId === p.id ? "border-primary/70 glow-primary" : ""}`}>
-              <div className="flex items-start gap-3">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="truncate font-semibold">{p.name}</h3>
-                    <span className="font-mono text-[10px] text-primary">{p.confidence}%</span>
-                  </div>
-                  <p className="truncate text-xs text-muted-foreground">{p.address}</p>
-                  <p className="mt-2 line-clamp-2 text-xs text-secondary-foreground/80">{p.note}</p>
-                  <div className="mt-2 flex gap-2 font-mono text-[10px] text-muted-foreground"><span className="rounded bg-secondary px-1.5 py-0.5">{CATEGORY_LABEL[p.category]}</span><span className="rounded bg-secondary px-1.5 py-0.5">{p.source}</span></div>
-                </div>
-              </div>
-            </button>
-          ))}
+          {shown.map(p => <PlaceCard key={p.id} place={p} active={activeId === p.id} onSelect={select} />)}
+          {!shown.length && <p className="text-sm text-muted-foreground py-8 text-center">此清單尚無地點</p>}
         </section>
       </aside>
 
-      <main className="relative h-full flex-1">
+      <main className="map-area relative flex-1">
         <ClientOnly fallback={<div className="h-full w-full bg-background" />}>
           <Suspense fallback={<div className="h-full w-full bg-background" />}>
             <MapView places={shown} activeId={activeId} onSelect={select} />
           </Suspense>
         </ClientOnly>
         <div className="glass pointer-events-none absolute left-5 top-5 z-[500] rounded-lg px-4 py-2 font-mono text-[11px] text-muted-foreground">
-          <span className="text-primary">●</span> LIVE · {shown.length} PINS · LOS ANGELES
+          <span className="text-primary">●</span> LIVE · {shown.length} PINS · {collections.find(c => c.id === selectedCollection)?.name}
         </div>
 
         {run && (
           <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-background/60 backdrop-blur-sm">
-            <div className="glass relative w-[460px] overflow-hidden rounded-2xl p-6">
+            <div className="glass relative w-[460px] max-w-[calc(100%-24px)] overflow-hidden rounded-lg p-6">
               <div className="animate-scan pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-transparent via-primary/10 to-transparent" />
               <div className="mb-1 flex items-center justify-between">
                 <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">AI Detective Pipeline</p>
-                <button onClick={() => setRun(null)} className="text-muted-foreground hover:text-foreground" aria-label="關閉"><X className="h-4 w-4" /></button>
+                <Button variant="ghost" onClick={cancel} className="text-muted-foreground hover:text-foreground" aria-label="關閉"><X className="h-4 w-4" /></Button>
               </div>
               <p className="mb-5 truncate font-mono text-xs text-muted-foreground">› {run.sample.input}</p>
               <ol className="space-y-4">
