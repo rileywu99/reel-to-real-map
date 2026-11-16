@@ -2,3 +2,5 @@
 - [x] Add My Space, settings and Lovable identity read.
 - [x] Add Maps link demo import, real file import and CSV export.
 - [x] Verify collection and import/export flows and responsive views.
+- [ ] Apply mobile map-first layout, capture sheet, floating place card and bottom navigation.
+- [ ] Verify mobile capture and navigation while preserving desktop layout.
