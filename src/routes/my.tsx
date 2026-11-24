@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { CollectionsManager } from "@/components/CollectionsManager";
 import { GoogleSyncHub } from "@/components/GoogleSyncHub";
 export const Route = createFileRoute("/my")({
-  loader: () => $getSessionUser(),
+  // Static hosts (GitHub Pages) have no server function endpoint; fall back to the guest profile.
+  loader: () => $getSessionUser().catch(() => null),
   head: () => ({ meta: [{ title: "我的空間與設定 // CLIP2MAP" }, { name: "description", content: "管理個人探索數據、珍藏清單與地圖連動偏好。" }, { property: "og:title", content: "我的空間與設定 // CLIP2MAP" }, { property: "og:description", content: "你的探索足跡、珍藏與地圖設定。" }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
   component: MySpace,
 });

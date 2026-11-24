@@ -9,10 +9,16 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+// GitHub Pages build: the deploy workflow sets PAGES_BASE (e.g. "/repo-name/") and the app
+// is built as a static SPA under that path. Lovable builds leave PAGES_BASE unset, so nothing changes there.
+const pagesBase = process.env.PAGES_BASE;
+
 export default defineConfig({
+  ...(pagesBase ? { vite: { base: pagesBase } } : {}),
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
+    ...(pagesBase ? { spa: { enabled: true } } : {}),
   },
 });

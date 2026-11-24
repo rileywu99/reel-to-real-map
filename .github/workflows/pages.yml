@@ -1,0 +1,53 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      PAGES_BASE: /${{ github.event.repository.name }}/
+      NITRO_PRESET: static
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - name: Collect static site
+        run: |
+          shell=$(find .output dist -name '_shell.html' -not -path '*/node_modules/*' 2>/dev/null | head -1)
+          if [ -z "$shell" ]; then shell=$(find .output dist -name 'index.html' -not -path '*/node_modules/*' 2>/dev/null | head -1); fi
+          echo "entry: $shell"
+          test -n "$shell"
+          site=$(dirname "$shell")
+          mkdir -p _site
+          cp -R "$site"/. _site/
+          cp "$shell" _site/index.html
+          cp "$shell" _site/404.html
+          touch _site/.nojekyll
+          find _site -maxdepth 2 | head -50
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
