@@ -1,11 +1,16 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { Compass, FolderHeart, Radar, UserRound, ArrowUpRight } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "./ui/button";
 import { useWorkspace } from "@/lib/workspace";
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const { settings, profile, signedOut } = useWorkspace();
-  const path = useLocation().pathname;
+  const location = useLocation().pathname;
+  // On GitHub Pages every deep link is served the prerendered "/" shell, and React keeps the
+  // shell's classes during hydration. Render as "/" until mounted there, then use the real path.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+  const path = hydrated || import.meta.env.BASE_URL === "/" ? location : "/";
    return <div className={`workspace ${path === "/" ? "workspace-map" : ""} ${settings.contrast ? "high-contrast" : ""}`}>
     <nav className="studio-nav">
       <Link to="/" className="brand"><span className="brand-icon"><Radar /></span><span>CLIP2MAP <span className="text-primary">//</span><small>SPATIAL INTELLIGENCE</small></span></Link>
